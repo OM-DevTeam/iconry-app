@@ -45,6 +45,8 @@ Everything runs in your browser. Nothing is uploaded anywhere.
 Requires [Node.js](https://nodejs.org) 18+.
 
 ```bash
+git clone git@github.com:jason-om/iconry-app.git
+cd iconry-app
 npm install
 npm run dev        # http://localhost:5173
 ```
