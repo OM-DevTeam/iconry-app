@@ -5,6 +5,7 @@ get back a consistent family — normalized stroke weight, unified color, tidy n
 then copy or download them individually or as a single `.zip`.
 
 > **Live app:** `https://jason-om.github.io/iconry-app/`
+> **What's new:** see [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
