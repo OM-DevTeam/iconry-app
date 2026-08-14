@@ -379,6 +379,9 @@ export default function App() {
   const [viewMode, setViewMode] = useState("single"); // single | grid
   const [dragOver, setDragOver] = useState(false);
   const [editingId, setEditingId] = useState(null); // grid cell being renamed
+  const [leftOpen, setLeftOpen] = useState(true);   // left panel expanded
+  const [rightOpen, setRightOpen] = useState(true); // right panel expanded
+  const [isNarrow, setIsNarrow] = useState(false);  // stacked layout on small screens
 
   function resetTransforms() {
     setScale(100); setMoveX(0); setMoveY(0); setRotate(0); setFlipH(false); setFlipV(false);
@@ -392,6 +395,14 @@ export default function App() {
       "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap";
     document.head.appendChild(l);
     return () => l.remove();
+  }, []);
+
+  // track viewport width for the stacked (mobile) fallback
+  useEffect(() => {
+    const onResize = () => setIsNarrow(window.innerWidth < 820);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   // seed with the sample
@@ -579,6 +590,12 @@ export default function App() {
     opacity: 0.75,
   };
 
+  const chevBtn = {
+    width: 24, height: 24, borderRadius: 7, border: `1px solid ${C.line}`,
+    background: "#fff", color: C.muted, cursor: "pointer", padding: 0,
+    fontSize: 16, lineHeight: "22px", fontFamily: "'JetBrains Mono', monospace",
+  };
+
   const label = {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: 11,
@@ -591,12 +608,18 @@ export default function App() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         background: C.canvas,
         color: C.ink,
         fontFamily: "'Space Grotesk', system-ui, sans-serif",
-        padding: "clamp(16px, 4vw, 40px)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: isNarrow ? "auto" : "hidden",
       }}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
+      onDrop={onDrop}
     >
       <style>{`
         * { box-sizing: border-box; }
@@ -614,52 +637,124 @@ export default function App() {
           background-size:20px 20px;
           background-position:0 0,0 10px,10px -10px,-10px 0;
         }
+        .ico-panel::-webkit-scrollbar{ width:10px; height:10px; }
+        .ico-panel::-webkit-scrollbar-thumb{ background:${C.line}; border-radius:6px; }
+        .ico-panel::-webkit-scrollbar-track{ background:transparent; }
       `}</style>
 
-      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-        {/* header */}
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
-          <div>
-            <div style={{ ...label, color: C.accent, marginBottom: 4 }}>ICONRY</div>
-            <h1 style={{ margin: 0, fontSize: "clamp(24px,4vw,34px)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Recolor, resize, and restyle SVG icons
-            </h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, alignSelf: "flex-end" }}>
-            <span style={label}>{icons.length} loaded</span>
-            <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
-              {[["single", "Single"], ["grid", "Grid"]].map(([m, l]) => (
-                <button key={m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
-              ))}
-            </div>
+      {/* drag overlay */}
+      {dragOver && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 60,
+          background: "rgba(90,79,243,0.08)", border: `2px dashed ${C.accent}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none", backdropFilter: "blur(1px)",
+        }}>
+          <span style={{ ...label, color: C.accent, fontSize: 14 }}>Drop SVG files to add</span>
+        </div>
+      )}
+
+      {/* ---------- sticky top bar ---------- */}
+      <div style={{
+        flex: "none", display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 12, padding: "10px 16px", borderBottom: `1px solid ${C.line}`, background: C.panel,
+        position: "sticky", top: 0, zIndex: 30, flexWrap: "wrap",
+      }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ ...label, color: C.accent }}>ICONRY</span>
+          <span style={{ fontSize: 14, color: C.muted }}>Recolor, resize, and restyle SVG icons</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={label}>{icons.length} loaded</span>
+          <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
+            {[["single", "Single"], ["grid", "Grid"]].map(([m, l]) => (
+              <button key={m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
+            ))}
           </div>
         </div>
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 340px", gap: 20, alignItems: "start" }} className="wb-grid">
-          <style>{`@media (max-width:820px){ .wb-grid{ grid-template-columns:1fr !important; } }`}</style>
+      {/* ---------- shell: left | canvas | right ---------- */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: isNarrow ? "column" : "row" }}>
 
-          {/* ---------- MAIN: preview + filmstrip ---------- */}
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: 16, position: "relative" }}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragEnter={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false); }}
-            onDrop={onDrop}
-          >
-            {/* drag overlay */}
-            {dragOver && (
-              <div style={{
-                position: "absolute", inset: 0, zIndex: 20, borderRadius: 16,
-                background: "rgba(90,79,243,0.08)", border: `2px dashed ${C.accent}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                pointerEvents: "none", backdropFilter: "blur(1px)",
-              }}>
-                <span style={{ ...label, color: C.accent, fontSize: 13 }}>Drop SVG files to add</span>
+        {/* ===== LEFT panel: icons ===== */}
+        {(leftOpen || isNarrow) ? (
+          <aside className="ico-panel" style={{
+            flex: "none", width: isNarrow ? "auto" : 264,
+            borderRight: isNarrow ? "none" : `1px solid ${C.line}`,
+            borderBottom: isNarrow ? `1px solid ${C.line}` : "none",
+            background: C.panel, display: "flex", flexDirection: "column",
+            overflowY: "auto", padding: 14, gap: 12,
+          }}>
+            <Row>
+              <div style={label}>Icons</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {icons.length > 0 && <button onClick={clearAll} style={{ ...miniBtn, color: C.muted }}>Clear all</button>}
+                {!isNarrow && <button onClick={() => setLeftOpen(false)} title="Collapse" style={chevBtn}>‹</button>}
+              </div>
+            </Row>
+            <textarea
+              value={paste}
+              onChange={(e) => { setPaste(e.target.value); setPasteErr(""); }}
+              placeholder="Paste <svg> code…"
+              rows={3}
+              style={{
+                width: "100%", resize: "vertical", borderRadius: 9,
+                border: `1px solid ${pasteErr ? "#D64545" : C.line}`, padding: "9px 11px",
+                fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.ink, background: "#FBFBFC",
+              }}
+            />
+            {pasteErr && <div style={{ color: "#D64545", fontSize: 12 }}>{pasteErr}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={onPaste} style={btn(C.ink, "#fff", true)}>Add</button>
+              <button onClick={() => fileRef.current?.click()} style={btn("transparent", C.ink)}>Upload</button>
+              <input ref={fileRef} type="file" accept=".svg,image/svg+xml" multiple onChange={onFiles} style={{ display: "none" }} />
+            </div>
+
+            {/* icon list */}
+            {icons.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 2 }}>
+                {icons.map((ic) => {
+                  const active = ic.id === selId;
+                  return (
+                    <div key={ic.id} style={{ position: "relative" }}>
+                      <button
+                        onClick={() => setSelId(ic.id)}
+                        title={ic.name}
+                        style={{
+                          width: 58, height: 58, borderRadius: 12, cursor: "pointer",
+                          background: C.paper, border: `1.5px solid ${active ? C.accent : C.line}`,
+                          boxShadow: active ? `0 0 0 3px ${C.accentSoft}` : "none",
+                          display: "flex", alignItems: "center", justifyContent: "center", padding: 9,
+                          color: C.ink, transition: "all .15s",
+                        }}
+                      >
+                        <div style={{ lineHeight: 0, maxWidth: "100%", maxHeight: "100%" }}
+                          dangerouslySetInnerHTML={{ __html: processSvg(ic.raw, { colorMode: "solid", fillColor: C.ink, strokeColor: C.ink, weight: 0, size: 38 }) || "" }} />
+                      </button>
+                      <button onClick={() => removeIcon(ic.id)} aria-label="Remove"
+                        style={{
+                          position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%",
+                          border: "none", background: C.ink, color: "#fff", fontSize: 11, lineHeight: "18px", cursor: "pointer", padding: 0,
+                        }}>×</button>
+                    </div>
+                  );
+                })}
               </div>
             )}
+          </aside>
+        ) : (
+          <div style={{ flex: "none", width: 42, borderRight: `1px solid ${C.line}`, background: C.panel, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, gap: 10 }}>
+            <button onClick={() => setLeftOpen(true)} title="Expand icons" style={chevBtn}>›</button>
+            <span style={{ ...label, writingMode: "vertical-rl", transform: "rotate(180deg)", letterSpacing: "0.12em" }}>ICONS</span>
+          </div>
+        )}
 
-            {/* preview stage */}
-            <div style={{ background: C.panel, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden" }}>
+        {/* ===== CENTER: canvas ===== */}
+        <div className="ico-panel" style={{ flex: 1, minWidth: 0, minHeight: isNarrow ? 380 : 0, display: "flex", flexDirection: "column", overflow: "auto", padding: 16 }}>
+
+          {/* preview stage */}
+          <div style={{ background: C.panel, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", flex: 1, minHeight: isNarrow ? 340 : 0, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   {viewMode === "grid" ? (
@@ -701,7 +796,7 @@ export default function App() {
                   onClick={() => fileRef.current?.click()}
                   className={bg === "checker" ? "stage-checker" : ""}
                   style={{
-                    background: previewBg, minHeight: 320, cursor: "pointer",
+                    background: previewBg, flex: 1, minHeight: 320, cursor: "pointer",
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: 40, textAlign: "center",
                   }}
@@ -716,7 +811,7 @@ export default function App() {
                 <div
                   className={bg === "checker" ? "stage-checker" : ""}
                   style={{
-                    background: previewBg, minHeight: 320,
+                    background: previewBg, flex: 1, minHeight: 320,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     padding: 40, position: "relative",
                   }}
@@ -745,9 +840,10 @@ export default function App() {
                 <div
                   className={bg === "checker" ? "stage-checker" : ""}
                   style={{
-                    background: previewBg, minHeight: 320, maxHeight: 560, overflowY: "auto",
+                    background: previewBg, flex: 1, minHeight: 320, overflowY: "auto",
                     padding: 16,
                     display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))", gap: 12,
+                    gridAutoRows: "min-content", alignContent: "start", alignItems: "start",
                   }}
                 >
                   {icons.map((ic) => {
@@ -800,72 +896,23 @@ export default function App() {
               )}
             </div>
 
-            {/* filmstrip (single view only) */}
-            {icons.length > 0 && viewMode === "single" && (
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {icons.map((ic) => {
-                  const active = ic.id === selId;
-                  return (
-                    <div key={ic.id} style={{ position: "relative" }}>
-                      <button
-                        onClick={() => setSelId(ic.id)}
-                        title={ic.name}
-                        style={{
-                          width: 62, height: 62, borderRadius: 12, cursor: "pointer",
-                          background: C.panel,
-                          border: `1.5px solid ${active ? C.accent : C.line}`,
-                          boxShadow: active ? `0 0 0 3px ${C.accentSoft}` : "none",
-                          display: "flex", alignItems: "center", justifyContent: "center", padding: 10,
-                          color: C.ink, transition: "all .15s",
-                        }}
-                      >
-                        <div style={{ lineHeight: 0, maxWidth: "100%", maxHeight: "100%" }}
-                          dangerouslySetInnerHTML={{ __html: processSvg(ic.raw, { colorMode: "solid", fillColor: C.ink, strokeColor: C.ink, weight: 0, size: 40 }) || "" }} />
-                      </button>
-                      <button
-                        onClick={() => removeIcon(ic.id)}
-                        aria-label="Remove"
-                        style={{
-                          position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%",
-                          border: "none", background: C.ink, color: "#fff", fontSize: 11, lineHeight: "18px",
-                          cursor: "pointer", padding: 0,
-                        }}
-                      >×</button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* (icon list now lives in the left panel) */}
           </div>
+          {/* end CENTER */}
 
-          {/* ---------- SIDEBAR: controls ---------- */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* add icons (persistent) */}
-            <Panel>
-              <Row>
-                <div style={label}>Add icons</div>
-                {icons.length > 0 && (
-                  <button onClick={clearAll} style={{ ...miniBtn, color: C.muted }}>Clear all</button>
-                )}
-              </Row>
-              <textarea
-                value={paste}
-                onChange={(e) => { setPaste(e.target.value); setPasteErr(""); }}
-                placeholder="Paste <svg> code…"
-                rows={3}
-                style={{
-                  width: "100%", marginTop: 10, resize: "vertical", borderRadius: 9,
-                  border: `1px solid ${pasteErr ? "#D64545" : C.line}`, padding: "9px 11px",
-                  fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.ink, background: "#FBFBFC",
-                }}
-              />
-              {pasteErr && <div style={{ color: "#D64545", fontSize: 12, marginTop: 5 }}>{pasteErr}</div>}
-              <div style={{ display: "flex", gap: 8, marginTop: 9 }}>
-                <button onClick={onPaste} style={btn(C.ink, "#fff", true)}>Add pasted</button>
-                <button onClick={() => fileRef.current?.click()} style={btn("transparent", C.ink)}>Upload files</button>
-                <input ref={fileRef} type="file" accept=".svg,image/svg+xml" multiple onChange={onFiles} style={{ display: "none" }} />
-              </div>
-            </Panel>
+          {/* ===== RIGHT panel: properties ===== */}
+          {(rightOpen || isNarrow) ? (
+          <div className="ico-panel" style={{
+            flex: "none", width: isNarrow ? "auto" : 344,
+            borderLeft: isNarrow ? "none" : `1px solid ${C.line}`,
+            borderTop: isNarrow ? `1px solid ${C.line}` : "none",
+            background: C.panel, display: "flex", flexDirection: "column",
+            overflowY: "auto", padding: 14, gap: 14,
+          }}>
+            <Row>
+              <div style={label}>Properties</div>
+              {!isNarrow && <button onClick={() => setRightOpen(false)} title="Collapse" style={chevBtn}>›</button>}
+            </Row>
 
             {/* tabbed editor: Colors / Display / Stroke */}
             <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", display: "flex" }}>
@@ -1021,9 +1068,20 @@ export default function App() {
             <Panel>
               <Row>
                 <div style={label}>Export size</div>
-                <span style={mono()}>{size}px</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={2048}
+                    value={size}
+                    onChange={(e) => setSize(clamp(parseInt(e.target.value) || 0, 1, 2048))}
+                    aria-label="Export size in pixels"
+                    style={{ ...numBox, width: 64 }}
+                  />
+                  <span style={{ fontSize: 13, color: C.muted, fontFamily: "'JetBrains Mono', monospace" }}>px</span>
+                </div>
               </Row>
-              <input type="range" min={16} max={512} step={4} value={size}
+              <input type="range" min={16} max={512} step={1} value={Math.min(size, 512)}
                 onChange={(e) => setSize(parseInt(e.target.value))} style={{ width: "100%", marginTop: 12 }} />
               <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                 {[24, 48, 96, 256, 512].map((v) => (
@@ -1045,8 +1103,13 @@ export default function App() {
               )}
             </Panel>
           </div>
+          ) : (
+            <div style={{ flex: "none", width: 42, borderLeft: `1px solid ${C.line}`, background: C.panel, display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12, gap: 10 }}>
+              <button onClick={() => setRightOpen(true)} title="Expand properties" style={chevBtn}>‹</button>
+              <span style={{ ...label, writingMode: "vertical-rl", letterSpacing: "0.12em" }}>PROPERTIES</span>
+            </div>
+          )}
         </div>
-      </div>
 
       {/* toast */}
       {toast && (
