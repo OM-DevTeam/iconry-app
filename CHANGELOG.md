@@ -47,6 +47,10 @@ and presets still work as before.
 Below 820px wide the three panels stack vertically and the collapse chevrons
 hide, so Iconry stays usable on a laptop in split-screen or on a tablet.
 
+**A real browser icon**
+Iconry now has its own favicon, so it's easy to pick out when you have a wall
+of tabs open.
+
 ### Fixed
 
 **Export size and scale could silently produce the wrong number.**
@@ -63,11 +67,6 @@ half-typed value and only correct it when you leave the field.
 - Settings and loaded icons still live in memory for the session. A refresh
   clears them; persistence isn't built yet.
 - Everything still runs entirely in your browser. No icon is ever uploaded.
-
-### Known issues
-
-- The browser tab shows a default icon — Iconry has no favicon yet. Cosmetic
-  only.
 
 ---
 
