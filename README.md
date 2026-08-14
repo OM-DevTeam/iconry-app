@@ -4,8 +4,7 @@
 get back a consistent family — normalized stroke weight, unified color, tidy names —
 then copy or download them individually or as a single `.zip`.
 
-> **Live app:** _add your GitHub Pages URL here after the first deploy_
-> `https://jason-om.github.io/iconry-app/`
+> **Live app:** `https://jason-om.github.io/iconry-app/`
 
 ---
 
