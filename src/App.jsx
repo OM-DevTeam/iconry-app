@@ -973,8 +973,8 @@ export default function App() {
                     <div>
                       <Row>
                         <div style={label}>Scale</div>
-                        <input type="number" min={10} max={300} value={scale}
-                          onChange={(e) => setScale(clamp(parseInt(e.target.value) || 0, 10, 300))} style={numBox} />
+                        <NumField value={scale} min={10} max={300} onCommit={setScale}
+                          ariaLabel="Scale percentage" style={numBox} />
                       </Row>
                       <input type="range" min={10} max={200} step={1} value={Math.min(scale, 200)}
                         onChange={(e) => setScale(parseInt(e.target.value))} style={{ width: "100%", marginTop: 12 }} />
@@ -1069,13 +1069,12 @@ export default function App() {
               <Row>
                 <div style={label}>Export size</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <input
-                    type="number"
+                  <NumField
+                    value={size}
                     min={1}
                     max={2048}
-                    value={size}
-                    onChange={(e) => setSize(clamp(parseInt(e.target.value) || 0, 1, 2048))}
-                    aria-label="Export size in pixels"
+                    onCommit={setSize}
+                    ariaLabel="Export size in pixels"
                     style={{ ...numBox, width: 64 }}
                   />
                   <span style={{ fontSize: 13, color: C.muted, fontFamily: "'JetBrains Mono', monospace" }}>px</span>
@@ -1166,6 +1165,35 @@ function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
       />
       <span style={{ fontSize: compact ? 10 : 13, color: C.muted, fontFamily: "'JetBrains Mono', monospace" }}>.svg</span>
     </span>
+  );
+}
+
+// numeric field that tolerates half-typed values: commits only valid in-range
+// numbers while typing, and clamps whatever is left behind on blur.
+function NumField({ value, min, max, step, onCommit, ariaLabel, style }) {
+  const [text, setText] = useState(String(value));
+  useEffect(() => { setText(String(value)); }, [value]);
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={text}
+      onChange={(e) => {
+        const v = e.target.value;
+        setText(v);
+        const n = parseInt(v, 10);
+        if (!isNaN(n) && n >= min && n <= max) onCommit(n);
+      }}
+      onBlur={(e) => {
+        const n = parseInt(e.target.value, 10);
+        if (isNaN(n)) setText(String(value));
+        else onCommit(clamp(n, min, max));
+      }}
+      aria-label={ariaLabel}
+      style={style}
+    />
   );
 }
 
