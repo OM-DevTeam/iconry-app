@@ -102,3 +102,6 @@ manually from the **Actions** tab.
   General, Social, Users), each in Outline and Solid, served from a folder +
   manifest, with "open in Iconry" to tweak before export. _Confirm Flaticon
   licensing for agency/multi-site use before stocking packs._
+- **Dropbox integration:** let team members select SVGs from Dropbox in Iconry,
+  beginning with Dropbox Chooser and expanding to direct browse/save-back only
+  if needed. See [the implementation roadmap](docs/DROPBOX-INTEGRATION-ROADMAP.md).
