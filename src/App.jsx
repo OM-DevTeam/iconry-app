@@ -6,18 +6,44 @@ import { useState, useEffect, useMemo, useRef } from "react";
 /*  adjusts stroke weight, color, and size — then copies or exports.   */
 /* ------------------------------------------------------------------ */
 
+/* Design tokens. Every color, font, and radius in this file resolves through
+   here — no raw values inline, so the theme can be swapped in one place. */
 const C = {
-  ink: "#191B22",
+  /* OM Performance Marketing brand tokens (OM Style Guide v1.2).
+     Dark blue carries ~90% of the ink. Sky blue is a POINTER, not a fill:
+     use it for focus rings, selection borders and control handles only —
+     never as a text color or a large surface. */
+  ink: "#0D2132",        // OM dark blue — primary ink and primary fill
   paper: "#FFFFFF",
-  canvas: "#E7E9ED",
+  canvas: "#EFEFEF",     // OM grey EF
   panel: "#FFFFFF",
-  line: "#D6DAE1",
-  lineSoft: "#E7EAEF",
-  muted: "#71767F",
-  accent: "#5A4FF3",
-  accentSoft: "#EEECFE",
-  dark: "#14161D",
-  good: "#1B9E64",
+  line: "#E1E1E1",       // OM hairline
+  lineSoft: "#EFEFEF",
+  muted: "#606060",      // OM grey 60
+  accent: "#46C3FC",     // OM sky blue — pointer only, see note above
+  accentSoft: "#E8F7FE", // sky-blue tint for active chip backgrounds
+  dark: "#0A1926",       // near-black dark blue, for the dark preview stage
+  good: "#38E426",
+  danger: "#F41F3D",     // OM red — borders and indicators
+  dangerText: "#E51D39",  // OM red darkened to clear WCAG AA (4.60:1) as body text
+  surfaceSoft: "#F7F7F7", // OM grey F7 — input and rail backgrounds
+  shadow: "#000000",
+
+  /* The default color of icons the user EXPORTS. Deliberately its own token,
+     not C.ink: UI chrome and tool output are different concerns, and retuning
+     the interface must not silently change what the tool produces. */
+  iconDefault: "#0D2132",
+
+  /* type — Archivo stands in for Altivo until licensed files are available */
+  fontDisplay: "'Archivo', system-ui, sans-serif",
+  fontBody: "'Open Sans', system-ui, sans-serif",
+  fontMono: "'JetBrains Mono', ui-monospace, monospace",
+
+  /* radii */
+  radiusSm: 6,
+  radiusMd: 8,
+  radiusLg: 14,
+  radiusPill: "50%",
 };
 
 const SAMPLE_SVG = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 482.6 482.6"><path d="M98.339,320.8c47.6,56.9,104.9,101.7,170.3,133.4c24.9,11.8,58.2,25.8,95.3,28.2c2.3,0.1,4.5,0.2,6.8,0.2c24.9,0,44.9-8.6,61.2-26.3c0.1-0.1,0.3-0.3,0.4-0.5c5.8-7,12.4-13.3,19.3-20c4.7-4.5,9.5-9.2,14.1-14c21.3-22.2,21.3-50.4-0.2-71.9l-60.1-60.1c-10.2-10.6-22.4-16.2-35.2-16.2c-12.8,0-25.1,5.6-35.6,16.1l-35.8,35.8c-3.3-1.9-6.7-3.6-9.9-5.2c-4-2-7.7-3.9-11-6c-32.6-20.7-62.2-47.7-90.5-82.4c-14.3-18.1-23.9-33.3-30.6-48.8c9.4-8.5,18.2-17.4,26.7-26.1c3-3.1,6.1-6.2,9.2-9.3c10.8-10.8,16.6-23.3,16.6-36s-5.7-25.2-16.6-36l-29.8-29.8c-3.5-3.5-6.8-6.9-10.2-10.4c-6.6-6.8-13.5-13.8-20.3-20.1c-10.3-10.1-22.4-15.4-35.2-15.4c-12.7,0-24.9,5.3-35.6,15.5l-37.4,37.4c-13.6,13.6-21.3,30.1-22.9,49.2c-1.9,23.9,2.5,49.3,13.9,80C32.739,229.6,59.139,273.7,98.339,320.8z M25.739,104.2c1.2-13.3,6.3-24.4,15.9-34l37.2-37.2c5.8-5.6,12.2-8.5,18.4-8.5c6.1,0,12.3,2.9,18,8.7c6.7,6.2,13,12.7,19.8,19.6c3.4,3.5,6.9,7,10.4,10.6l29.8,29.8c6.2,6.2,9.4,12.5,9.4,18.7s-3.2,12.5-9.4,18.7c-3.1,3.1-6.2,6.3-9.3,9.4c-9.3,9.4-18,18.3-27.6,26.8c-0.2,0.2-0.3,0.3-0.5,0.5c-8.3,8.3-7,16.2-5,22.2c0.1,0.3,0.2,0.5,0.3,0.8c7.7,18.5,18.4,36.1,35.1,57.1c30,37,61.6,65.7,96.4,87.8c4.3,2.8,8.9,5,13.2,7.2c4,2,7.7,3.9,11,6c0.4,0.2,0.7,0.4,1.1,0.6c3.3,1.7,6.5,2.5,9.7,2.5c8,0,13.2-5.1,14.9-6.8l37.4-37.4c5.8-5.8,12.1-8.9,18.3-8.9c7.6,0,13.8,4.7,17.7,8.9l60.3,60.2c12,12,11.9,25-0.3,37.7c-4.2,4.5-8.6,8.8-13.3,13.3c-7,6.8-14.3,13.8-20.9,21.7c-11.5,12.4-25.2,18.2-42.9,18.2c-1.7,0-3.5-0.1-5.2-0.2c-32.8-2.1-63.3-14.9-86.2-25.8c-62.2-30.1-116.8-72.8-162.1-127c-37.3-44.9-62.4-86.7-79-131.5C28.039,146.4,24.139,124.3,25.739,104.2z"/></svg>`;
@@ -360,8 +386,8 @@ export default function App() {
   const nextId = useRef(1);
 
   const [colorMode, setColorMode] = useState("original"); // original | solid | current
-  const [fillColor, setFillColor] = useState("#191B22");
-  const [strokeColor, setStrokeColor] = useState("#191B22");
+  const [fillColor, setFillColor] = useState(C.iconDefault);
+  const [strokeColor, setStrokeColor] = useState(C.iconDefault);
   const [linkColors, setLinkColors] = useState(true); // keep fill & stroke in sync
   const [weight, setWeight] = useState(0);
   const weightTouched = useRef(false); // becomes true once the user sets weight manually
@@ -392,7 +418,7 @@ export default function App() {
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href =
-      "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap";
+      "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
     document.head.appendChild(l);
     return () => l.remove();
   }, []);
@@ -521,7 +547,10 @@ export default function App() {
 
   function copyCurrent() {
     if (!processed) return;
-    navigator.clipboard.writeText(processed).then(() => flash("Copied SVG code"));
+    copyText(processed).then(
+      () => flash("Copied SVG code"),
+      () => flash("Couldn't copy — use Download instead"),
+    );
   }
   function downloadCurrent() {
     if (!processed || !selected) return;
@@ -551,23 +580,23 @@ export default function App() {
   }
 
   const previewBg =
-    bg === "light" ? "#FFFFFF" : bg === "dark" ? C.dark : "transparent";
+    bg === "light" ? C.paper : bg === "dark" ? C.dark : "transparent";
   // colors are baked into attributes for "solid"; for "current" the wrapper's
   // color drives currentColor (demo with fillColor); "original" falls back to bg.
-  const previewColor = colorMode === "current" ? fillColor : bg === "dark" ? "#FFFFFF" : C.ink;
+  const previewColor = colorMode === "current" ? fillColor : bg === "dark" ? C.paper : C.ink;
 
   const seg = (active) => ({
     flex: 1,
     padding: "7px 0",
     fontSize: 12,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontFamily: C.fontBody,
     fontWeight: 500,
     letterSpacing: "0.02em",
     border: "none",
     cursor: "pointer",
     borderRadius: 7,
     background: active ? C.ink : "transparent",
-    color: active ? "#fff" : C.muted,
+    color: active ? C.paper : C.muted,
     transition: "all .15s",
   });
 
@@ -575,29 +604,29 @@ export default function App() {
     display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
     padding: "12px 4px", border: "none", borderRadius: 10, cursor: "pointer",
     background: active ? C.accentSoft : "transparent",
-    color: active ? C.accent : C.muted, transition: "all .15s",
+    color: active ? C.ink : C.muted, transition: "all .15s",
   });
 
   const numBox = {
     width: 62, textAlign: "center", borderRadius: 8, border: `1px solid ${C.line}`,
-    padding: "6px 8px", fontFamily: "'JetBrains Mono', monospace", fontSize: 14,
+    padding: "6px 8px", fontFamily: C.fontBody, fontSize: 14,
     fontWeight: 600, color: C.ink,
   };
 
   const cellBtn = {
     width: 20, height: 20, borderRadius: 6, border: "none", cursor: "pointer",
-    background: C.ink, color: "#fff", fontSize: 12, lineHeight: "20px", padding: 0,
+    background: C.ink, color: C.paper, fontSize: 12, lineHeight: "20px", padding: 0,
     opacity: 0.75,
   };
 
   const chevBtn = {
     width: 24, height: 24, borderRadius: 7, border: `1px solid ${C.line}`,
-    background: "#fff", color: C.muted, cursor: "pointer", padding: 0,
-    fontSize: 16, lineHeight: "22px", fontFamily: "'JetBrains Mono', monospace",
+    background: C.paper, color: C.muted, cursor: "pointer", padding: 0,
+    fontSize: 16, lineHeight: "22px", fontFamily: C.fontBody,
   };
 
   const label = {
-    fontFamily: "'JetBrains Mono', monospace",
+    fontFamily: C.fontDisplay,
     fontSize: 11,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
@@ -611,7 +640,7 @@ export default function App() {
         height: "100vh",
         background: C.canvas,
         color: C.ink,
-        fontFamily: "'Space Grotesk', system-ui, sans-serif",
+        fontFamily: C.fontDisplay,
         display: "flex",
         flexDirection: "column",
         overflow: isNarrow ? "auto" : "hidden",
@@ -624,8 +653,8 @@ export default function App() {
       <style>{`
         * { box-sizing: border-box; }
         input[type=range]{ -webkit-appearance:none; appearance:none; height:4px; border-radius:4px; background:${C.line}; outline:none; }
-        input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:${C.accent}; cursor:pointer; border:3px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.2); }
-        input[type=range]::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; background:${C.accent}; cursor:pointer; border:3px solid #fff; }
+        input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:${C.accent}; cursor:pointer; border:3px solid ${C.paper}; box-shadow:0 1px 4px rgba(0,0,0,.2); }
+        input[type=range]::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; background:${C.accent}; cursor:pointer; border:3px solid ${C.paper}; }
         button:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid ${C.accent}; outline-offset:2px; }
         @media (prefers-reduced-motion: reduce){ *{ transition:none!important; } }
         .stage-checker{
@@ -646,11 +675,11 @@ export default function App() {
       {dragOver && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 60,
-          background: "rgba(90,79,243,0.08)", border: `2px dashed ${C.accent}`,
+          background: "rgba(70,195,252,0.10)", border: `2px dashed ${C.accent}`,
           display: "flex", alignItems: "center", justifyContent: "center",
           pointerEvents: "none", backdropFilter: "blur(1px)",
         }}>
-          <span style={{ ...label, color: C.accent, fontSize: 14 }}>Drop SVG files to add</span>
+          <span style={{ ...label, color: C.ink, fontSize: 14 }}>Drop SVG files to add</span>
         </div>
       )}
 
@@ -661,14 +690,14 @@ export default function App() {
         position: "sticky", top: 0, zIndex: 30, flexWrap: "wrap",
       }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-          <span style={{ ...label, color: C.accent }}>ICONRY</span>
+          <span style={{ ...label, color: C.ink }}>ICONRY</span>
           <span style={{ fontSize: 14, color: C.muted }}>Recolor, resize, and restyle SVG icons</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={label}>{icons.length} loaded</span>
-          <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
+          <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3, flex: "none" }}>
             {[["single", "Single"], ["grid", "Grid"]].map(([m, l]) => (
-              <button key={m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
+              <button key={m} aria-pressed={viewMode === m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
             ))}
           </div>
         </div>
@@ -700,13 +729,13 @@ export default function App() {
               rows={3}
               style={{
                 width: "100%", resize: "vertical", borderRadius: 9,
-                border: `1px solid ${pasteErr ? "#D64545" : C.line}`, padding: "9px 11px",
-                fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: C.ink, background: "#FBFBFC",
+                border: `1px solid ${pasteErr ? C.danger : C.line}`, padding: "9px 11px",
+                fontFamily: C.fontMono, fontSize: 12, color: C.ink, background: C.surfaceSoft,
               }}
             />
-            {pasteErr && <div style={{ color: "#D64545", fontSize: 12 }}>{pasteErr}</div>}
+            {pasteErr && <div style={{ color: C.dangerText, fontSize: 12 }}>{pasteErr}</div>}
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={onPaste} style={btn(C.ink, "#fff", true)}>Add</button>
+              <button onClick={onPaste} style={btn(C.ink, C.paper, true)}>Add</button>
               <button onClick={() => fileRef.current?.click()} style={btn("transparent", C.ink)}>Upload</button>
               <input ref={fileRef} type="file" accept=".svg,image/svg+xml" multiple onChange={onFiles} style={{ display: "none" }} />
             </div>
@@ -735,7 +764,7 @@ export default function App() {
                       <button onClick={() => removeIcon(ic.id)} aria-label="Remove"
                         style={{
                           position: "absolute", top: -6, right: -6, width: 18, height: 18, borderRadius: "50%",
-                          border: "none", background: C.ink, color: "#fff", fontSize: 11, lineHeight: "18px", cursor: "pointer", padding: 0,
+                          border: "none", background: C.ink, color: C.paper, fontSize: 11, lineHeight: "18px", cursor: "pointer", padding: 0,
                         }}>×</button>
                     </div>
                   );
@@ -755,8 +784,8 @@ export default function App() {
 
           {/* preview stage */}
           <div style={{ background: C.panel, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", flex: 1, minHeight: isNarrow ? 340 : 0, display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: "1 1 200px", minWidth: 0 }}>
                   {viewMode === "grid" ? (
                     <span style={label}>All icons · settings applied</span>
                   ) : (
@@ -764,9 +793,9 @@ export default function App() {
                       {info?.ok && (
                         <span style={{
                           ...label,
-                          color: info.type === "line" ? C.accent : C.ink,
+                          color: info.type === "line" ? C.ink : C.muted,
                           background: info.type === "line" ? C.accentSoft : C.lineSoft,
-                          padding: "4px 8px", borderRadius: 6,
+                          padding: "4px 8px", borderRadius: 6, flex: "none",
                         }}>
                           {info.type === "line" ? "LINE ICON" : "FILL ICON"}
                         </span>
@@ -783,7 +812,7 @@ export default function App() {
                 </div>
                 <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
                   {["checker", "light", "dark"].map((b) => (
-                    <button key={b} onClick={() => setBg(b)} style={{ ...seg(bg === b), padding: "5px 12px", flex: "none", fontSize: 11 }}>
+                    <button key={b} aria-pressed={bg === b} onClick={() => setBg(b)} style={{ ...seg(bg === b), padding: "5px 12px", flex: "none", fontSize: 11 }}>
                       {b === "checker" ? "trans" : b}
                     </button>
                   ))}
@@ -879,7 +908,7 @@ export default function App() {
                             title="Double-click to rename"
                             style={{
                               fontSize: 10.5, color: bg === "dark" ? "rgba(255,255,255,.7)" : C.muted,
-                              fontFamily: "'JetBrains Mono', monospace", maxWidth: "100%",
+                              fontFamily: C.fontBody, maxWidth: "100%",
                               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "text",
                             }}>{ic.name}</span>
                         )}
@@ -917,11 +946,11 @@ export default function App() {
             {/* tabbed editor: Colors / Display / Stroke */}
             <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", display: "flex" }}>
               {/* rail */}
-              <div style={{ width: 76, borderRight: `1px solid ${C.lineSoft}`, background: "#FBFBFC", display: "flex", flexDirection: "column", padding: "8px 6px", gap: 4 }}>
+              <div style={{ width: 76, borderRight: `1px solid ${C.lineSoft}`, background: C.surfaceSoft, display: "flex", flexDirection: "column", padding: "8px 6px", gap: 4 }}>
                 {[["colors", "Colors"], ["display", "Display"], ["stroke", "Stroke"]].map(([id, lbl]) => (
-                  <button key={id} onClick={() => setTab(id)} style={railBtn(tab === id)}>
+                  <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)} style={railBtn(tab === id)}>
                     <RailIcon name={id} />
-                    <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>{lbl}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, fontFamily: C.fontDisplay }}>{lbl}</span>
                   </button>
                 ))}
               </div>
@@ -933,7 +962,7 @@ export default function App() {
                   <div>
                     <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
                       {[["original", "keep"], ["solid", "solid"], ["current", "currentColor"]].map(([m, lbl]) => (
-                        <button key={m} onClick={() => setColorMode(m)} style={seg(colorMode === m)}>{lbl}</button>
+                        <button key={m} aria-pressed={colorMode === m} onClick={() => setColorMode(m)} style={seg(colorMode === m)}>{lbl}</button>
                       ))}
                     </div>
                     {colorMode === "solid" && (
@@ -955,7 +984,7 @@ export default function App() {
                     )}
                     {colorMode === "current" && (
                       <p style={{ fontSize: 11.5, color: C.muted, margin: "12px 0 0", lineHeight: 1.5 }}>
-                        Sets fill/stroke to <code style={{ fontFamily: "'JetBrains Mono',monospace" }}>currentColor</code> so CSS <code style={{ fontFamily: "'JetBrains Mono',monospace" }}>color</code> drives it — ideal for Elementor theming.
+                        Sets fill/stroke to <code style={{ fontFamily: C.fontMono }}>currentColor</code> so CSS <code style={{ fontFamily: C.fontMono }}>color</code> drives it — ideal for Elementor theming.
                       </p>
                     )}
                     {colorMode === "original" && (
@@ -1044,7 +1073,7 @@ export default function App() {
                       }}>
                         {sstats.count > 0 ? (
                           <>Detected widths across {sstats.lineCount} line icon{sstats.lineCount > 1 ? "s" : ""}:{" "}
-                            <span style={{ fontFamily: "'JetBrains Mono',monospace", color: C.ink }}>
+                            <span style={{ fontFamily: C.fontBody, color: C.ink }}>
                               {sstats.min === sstats.max ? sstats.min : `${sstats.min}–${sstats.max}`}
                             </span>. The weight above overrides them all to one value.</>
                         ) : (
@@ -1077,26 +1106,26 @@ export default function App() {
                     ariaLabel="Export size in pixels"
                     style={{ ...numBox, width: 64 }}
                   />
-                  <span style={{ fontSize: 13, color: C.muted, fontFamily: "'JetBrains Mono', monospace" }}>px</span>
+                  <span style={{ fontSize: 13, color: C.muted, fontFamily: C.fontBody }}>px</span>
                 </div>
               </Row>
               <input type="range" min={16} max={512} step={1} value={Math.min(size, 512)}
                 onChange={(e) => setSize(parseInt(e.target.value))} style={{ width: "100%", marginTop: 12 }} />
               <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                 {[24, 48, 96, 256, 512].map((v) => (
-                  <button key={v} onClick={() => setSize(v)}
-                    style={{ ...miniBtn, background: size === v ? C.accentSoft : "#fff", color: size === v ? C.accent : C.muted, borderColor: size === v ? C.accent : C.line }}>
+                  <button key={v} aria-pressed={size === v} onClick={() => setSize(v)}
+                    style={{ ...miniBtn, background: size === v ? C.accentSoft : C.paper, color: size === v ? C.ink : C.muted, borderColor: size === v ? C.accent : C.line }}>
                     {v}
                   </button>
                 ))}
               </div>
               <div style={{ height: 1, background: C.lineSoft, margin: "14px 0" }} />
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={copyCurrent} style={btn(C.accent, "#fff", true)}>Copy code</button>
+                <button onClick={copyCurrent} style={btn(C.ink, C.paper, true)}>Copy code</button>
                 <button onClick={downloadCurrent} style={btn("transparent", C.ink)}>Download</button>
               </div>
               {icons.length > 1 && (
-                <button onClick={downloadAll} style={{ ...btn(C.ink, "#fff", true), width: "100%", marginTop: 8 }}>
+                <button onClick={downloadAll} style={{ ...btn(C.ink, C.paper, true), width: "100%", marginTop: 8 }}>
                   Download all as .zip ({icons.length})
                 </button>
               )}
@@ -1114,8 +1143,8 @@ export default function App() {
       {toast && (
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          background: C.ink, color: "#fff", padding: "10px 18px", borderRadius: 10,
-          fontFamily: "'JetBrains Mono', monospace", fontSize: 13, boxShadow: "0 6px 24px rgba(0,0,0,.25)", zIndex: 50,
+          background: C.ink, color: C.paper, padding: "10px 18px", borderRadius: 10,
+          fontFamily: C.fontBody, fontSize: 13, boxShadow: "0 6px 24px rgba(0,0,0,.25)", zIndex: 50,
         }}>
           {toast}
         </div>
@@ -1139,6 +1168,31 @@ function slugify(s) {
   return out || "icon";
 }
 
+/* navigator.clipboard is unavailable on non-secure origins and rejects when
+   permission is denied. Fall back to a detached textarea + execCommand, and
+   let the caller report failure rather than rejecting silently. */
+function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  }
+  return legacyCopy(text);
+}
+
+function legacyCopy(text) {
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:-9999px;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch { ok = false; }
+    document.body.removeChild(ta);
+    ok ? resolve() : reject(new Error("clipboard unavailable"));
+  });
+}
+
 function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
   const [t, setT] = useState(initial);
   const ref = useRef(null);
@@ -1146,7 +1200,7 @@ function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
   useEffect(() => { if (autoFocus && ref.current) { ref.current.focus(); ref.current.select(); } }, [autoFocus]);
   const commit = () => { const s = slugify(t); setT(s); onCommit(s); };
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, maxWidth: "100%" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, maxWidth: "100%", minWidth: 0, flex: "1 1 auto" }}>
       <input
         ref={ref}
         value={t}
@@ -1156,14 +1210,14 @@ function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
         spellCheck={false}
         aria-label="Icon name"
         style={{
-          width: compact ? "100%" : 170, minWidth: 0,
+          width: compact ? "100%" : 170, minWidth: 0, flex: "1 1 auto",
           border: `1px solid ${C.line}`, borderRadius: 7,
           padding: compact ? "3px 6px" : "5px 9px",
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: compact ? 10.5 : 13, color: C.ink, background: "#fff",
+          fontFamily: C.fontBody,
+          fontSize: compact ? 10.5 : 13, color: C.ink, background: C.paper,
         }}
       />
-      <span style={{ fontSize: compact ? 10 : 13, color: C.muted, fontFamily: "'JetBrains Mono', monospace" }}>.svg</span>
+      <span style={{ fontSize: compact ? 10 : 13, color: C.muted, fontFamily: C.fontBody, flex: "none" }}>.svg</span>
     </span>
   );
 }
@@ -1205,10 +1259,10 @@ function Group({ items }) {
           style={{
             flex: 1, padding: "11px 0", border: "none",
             borderLeft: i ? `1px solid ${C.line}` : "none",
-            background: it.active ? C.accentSoft : "#fff",
-            color: it.active ? C.accent : C.ink,
+            background: it.active ? C.accentSoft : C.paper,
+            color: it.active ? C.ink : C.muted,
             fontSize: 18, lineHeight: 1, cursor: "pointer",
-            fontFamily: "'JetBrains Mono', monospace", transition: "all .12s",
+            fontFamily: C.fontBody, transition: "all .12s",
           }}>
           {it.label}
         </button>
@@ -1237,12 +1291,12 @@ function ColorField({ name, value, onChange }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <span style={{
-        width: 42, fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
+        width: 42, fontFamily: C.fontBody, fontSize: 11,
         letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted,
       }}>{name}</span>
       <input
         type="color"
-        value={valid ? value : "#000000"}
+        value={valid ? value : C.shadow}
         onChange={(e) => onChange(e.target.value)}
         aria-label={`${name} swatch`}
         style={{ width: 38, height: 38, border: `1px solid ${C.line}`, borderRadius: 9, background: "none", cursor: "pointer", padding: 2 }}
@@ -1257,8 +1311,8 @@ function ColorField({ name, value, onChange }) {
         spellCheck={false}
         style={{
           flex: 1, minWidth: 0, borderRadius: 9,
-          border: `1px solid ${valid ? C.line : "#D64545"}`,
-          padding: "9px 11px", fontFamily: "'JetBrains Mono', monospace",
+          border: `1px solid ${valid ? C.line : C.danger}`,
+          padding: "9px 11px", fontFamily: C.fontMono,
           fontSize: 13, color: C.ink,
         }}
       />
@@ -1272,17 +1326,17 @@ function Row({ children }) {
   return <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>{children}</div>;
 }
 function mono() {
-  return { fontFamily: "'JetBrains Mono', monospace", fontSize: 14, fontWeight: 600, color: C.accent };
+  return { fontFamily: C.fontDisplay, fontSize: 14, fontWeight: 700, color: C.ink };
 }
 function btn(bg, fg, filled) {
   return {
     flex: 1, padding: "10px 12px", borderRadius: 9, cursor: "pointer",
-    fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, fontWeight: 600,
+    fontFamily: C.fontDisplay, fontSize: 14, fontWeight: 600,
     background: bg, color: fg, border: filled ? "none" : `1px solid ${C.line}`,
     transition: "opacity .15s",
   };
 }
 const miniBtn = {
-  padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.line}`, background: "#fff",
-  fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: C.muted, cursor: "pointer",
+  padding: "5px 10px", borderRadius: 7, border: `1px solid ${C.line}`, background: C.paper,
+  fontFamily: C.fontBody, fontSize: 11, color: C.muted, cursor: "pointer",
 };

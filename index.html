@@ -5,11 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- relative href so it resolves under the GitHub Pages project subpath -->
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="theme-color" content="#5A4FF3" />
+    <meta name="theme-color" content="#0D2132" />
     <title>Iconry — Recolor, resize, and restyle SVG icons</title>
     <style>
       html, body, #root { margin: 0; padding: 0; min-height: 100%; }
-      body { background: #E7E9ED; }
+      /* Base face so unstyled text inherits Open Sans rather than falling back
+         to a serif — the OM guide calls out Times/serif as the wrong default. */
+      body {
+        background: #EFEFEF;
+        font-family: 'Open Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, sans-serif;
+        color: #0D2132;
+      }
     </style>
   </head>
   <body>
