@@ -4,7 +4,7 @@
 get back a consistent family — normalized stroke weight, unified color, tidy names —
 then copy or download them individually or as a single `.zip`.
 
-> **Live app:** `https://jason-om.github.io/iconry-app/`
+> **Live app:** `https://om-devteam.github.io/iconry-app/`
 > **What's new:** see [CHANGELOG.md](CHANGELOG.md)
 
 ---
@@ -45,7 +45,7 @@ Everything runs in your browser. Nothing is uploaded anywhere.
 Requires [Node.js](https://nodejs.org) 18+.
 
 ```bash
-git clone git@github.com:jason-om/iconry-app.git
+git clone git@github.com:OM-DevTeam/iconry-app.git
 cd iconry-app
 npm install
 npm run dev        # http://localhost:5173
@@ -67,7 +67,7 @@ This repo auto-deploys to **GitHub Pages** on every push to `main` via
 
 1. Repo **Settings -> Pages -> Build and deployment -> Source -> GitHub Actions**.
 2. Wait for the **Actions** tab run to finish — the site publishes to
-   `https://jason-om.github.io/iconry-app/`.
+   `https://om-devteam.github.io/iconry-app/`.
 
 > **Note:** GitHub Pages requires a **public** repo on free plans (private repos
 > need Pro/Team/Enterprise). If the deploy runs green but nothing publishes, check

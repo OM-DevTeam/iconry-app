@@ -4,9 +4,29 @@ All notable changes to Iconry are documented here. Newest first.
 
 ---
 
+## Moved to the OM-DevTeam org
+
+Iconry now lives at **OM-DevTeam/iconry-app**, and the live app moved with it.
+
+**New link — update your bookmarks:**
+`https://om-devteam.github.io/iconry-app/`
+
+The old `jason-om.github.io/iconry-app/` address no longer works, so any
+bookmark or saved link from before this change will 404.
+
+If you cloned the repo before the move, point your copy at the new home:
+
+```bash
+git remote set-url origin git@github.com:OM-DevTeam/iconry-app.git
+```
+
+Nothing about the app itself changed in this move.
+
+---
+
 ## v1.1.0 — Workspace layout
 
-**Live:** https://jason-om.github.io/iconry-app/
+**Live:** https://om-devteam.github.io/iconry-app/
 
 This release rebuilds the interface as a proper workspace. The old page
 scrolled as one long column; Iconry now fills the window with three panels
