@@ -697,7 +697,7 @@ export default function App() {
           <span style={label}>{icons.length} loaded</span>
           <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3, flex: "none" }}>
             {[["single", "Single"], ["grid", "Grid"]].map(([m, l]) => (
-              <button key={m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
+              <button key={m} aria-pressed={viewMode === m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
             ))}
           </div>
         </div>
@@ -812,7 +812,7 @@ export default function App() {
                 </div>
                 <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
                   {["checker", "light", "dark"].map((b) => (
-                    <button key={b} onClick={() => setBg(b)} style={{ ...seg(bg === b), padding: "5px 12px", flex: "none", fontSize: 11 }}>
+                    <button key={b} aria-pressed={bg === b} onClick={() => setBg(b)} style={{ ...seg(bg === b), padding: "5px 12px", flex: "none", fontSize: 11 }}>
                       {b === "checker" ? "trans" : b}
                     </button>
                   ))}
@@ -948,7 +948,7 @@ export default function App() {
               {/* rail */}
               <div style={{ width: 76, borderRight: `1px solid ${C.lineSoft}`, background: C.surfaceSoft, display: "flex", flexDirection: "column", padding: "8px 6px", gap: 4 }}>
                 {[["colors", "Colors"], ["display", "Display"], ["stroke", "Stroke"]].map(([id, lbl]) => (
-                  <button key={id} onClick={() => setTab(id)} style={railBtn(tab === id)}>
+                  <button key={id} aria-pressed={tab === id} onClick={() => setTab(id)} style={railBtn(tab === id)}>
                     <RailIcon name={id} />
                     <span style={{ fontSize: 11, fontWeight: 600, fontFamily: C.fontDisplay }}>{lbl}</span>
                   </button>
@@ -962,7 +962,7 @@ export default function App() {
                   <div>
                     <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
                       {[["original", "keep"], ["solid", "solid"], ["current", "currentColor"]].map(([m, lbl]) => (
-                        <button key={m} onClick={() => setColorMode(m)} style={seg(colorMode === m)}>{lbl}</button>
+                        <button key={m} aria-pressed={colorMode === m} onClick={() => setColorMode(m)} style={seg(colorMode === m)}>{lbl}</button>
                       ))}
                     </div>
                     {colorMode === "solid" && (
@@ -1113,7 +1113,7 @@ export default function App() {
                 onChange={(e) => setSize(parseInt(e.target.value))} style={{ width: "100%", marginTop: 12 }} />
               <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                 {[24, 48, 96, 256, 512].map((v) => (
-                  <button key={v} onClick={() => setSize(v)}
+                  <button key={v} aria-pressed={size === v} onClick={() => setSize(v)}
                     style={{ ...miniBtn, background: size === v ? C.accentSoft : C.paper, color: size === v ? C.ink : C.muted, borderColor: size === v ? C.accent : C.line }}>
                     {v}
                   </button>
