@@ -784,8 +784,8 @@ export default function App() {
 
           {/* preview stage */}
           <div style={{ background: C.panel, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", flex: 1, minHeight: isNarrow ? 340 : 0, display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "12px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: "1 1 200px", minWidth: 0 }}>
                   {viewMode === "grid" ? (
                     <span style={label}>All icons · settings applied</span>
                   ) : (
