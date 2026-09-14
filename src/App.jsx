@@ -692,7 +692,7 @@ export default function App() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={label}>{icons.length} loaded</span>
-          <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3 }}>
+          <div style={{ display: "flex", gap: 4, background: C.lineSoft, borderRadius: 9, padding: 3, flex: "none" }}>
             {[["single", "Single"], ["grid", "Grid"]].map(([m, l]) => (
               <button key={m} onClick={() => setViewMode(m)} style={{ ...seg(viewMode === m), padding: "5px 12px", flex: "none", fontSize: 11 }}>{l}</button>
             ))}
@@ -782,7 +782,7 @@ export default function App() {
           {/* preview stage */}
           <div style={{ background: C.panel, borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden", flex: 1, minHeight: isNarrow ? 340 : 0, display: "flex", flexDirection: "column" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.lineSoft}` }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flex: 1, minWidth: 0 }}>
                   {viewMode === "grid" ? (
                     <span style={label}>All icons · settings applied</span>
                   ) : (
@@ -792,7 +792,7 @@ export default function App() {
                           ...label,
                           color: info.type === "line" ? C.ink : C.muted,
                           background: info.type === "line" ? C.accentSoft : C.lineSoft,
-                          padding: "4px 8px", borderRadius: 6,
+                          padding: "4px 8px", borderRadius: 6, flex: "none",
                         }}>
                           {info.type === "line" ? "LINE ICON" : "FILL ICON"}
                         </span>
@@ -1172,7 +1172,7 @@ function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
   useEffect(() => { if (autoFocus && ref.current) { ref.current.focus(); ref.current.select(); } }, [autoFocus]);
   const commit = () => { const s = slugify(t); setT(s); onCommit(s); };
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, maxWidth: "100%" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, maxWidth: "100%", minWidth: 0, flex: "1 1 auto" }}>
       <input
         ref={ref}
         value={t}
@@ -1182,14 +1182,14 @@ function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
         spellCheck={false}
         aria-label="Icon name"
         style={{
-          width: compact ? "100%" : 170, minWidth: 0,
+          width: compact ? "100%" : 170, minWidth: 0, flex: "1 1 auto",
           border: `1px solid ${C.line}`, borderRadius: 7,
           padding: compact ? "3px 6px" : "5px 9px",
           fontFamily: C.fontBody,
           fontSize: compact ? 10.5 : 13, color: C.ink, background: C.paper,
         }}
       />
-      <span style={{ fontSize: compact ? 10 : 13, color: C.muted, fontFamily: C.fontBody }}>.svg</span>
+      <span style={{ fontSize: compact ? 10 : 13, color: C.muted, fontFamily: C.fontBody, flex: "none" }}>.svg</span>
     </span>
   );
 }
