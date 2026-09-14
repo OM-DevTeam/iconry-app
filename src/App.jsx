@@ -9,24 +9,35 @@ import { useState, useEffect, useMemo, useRef } from "react";
 /* Design tokens. Every color, font, and radius in this file resolves through
    here — no raw values inline, so the theme can be swapped in one place. */
 const C = {
-  ink: "#191B22",
+  /* OM Performance Marketing brand tokens (OM Style Guide v1.2).
+     Dark blue carries ~90% of the ink. Sky blue is a POINTER, not a fill:
+     use it for focus rings, selection borders and control handles only —
+     never as a text color or a large surface. */
+  ink: "#0D2132",        // OM dark blue — primary ink and primary fill
   paper: "#FFFFFF",
-  canvas: "#E7E9ED",
+  canvas: "#EFEFEF",     // OM grey EF
   panel: "#FFFFFF",
-  line: "#D6DAE1",
-  lineSoft: "#E7EAEF",
-  muted: "#71767F",
-  accent: "#5A4FF3",
-  accentSoft: "#EEECFE",
-  dark: "#14161D",
-  good: "#1B9E64",
-  danger: "#D64545",
-  dangerSoft: "#FBFBFC",
+  line: "#E1E1E1",       // OM hairline
+  lineSoft: "#EFEFEF",
+  muted: "#606060",      // OM grey 60
+  accent: "#46C3FC",     // OM sky blue — pointer only, see note above
+  accentSoft: "#E8F7FE", // sky-blue tint for active chip backgrounds
+  dark: "#0A1926",       // near-black dark blue, for the dark preview stage
+  good: "#38E426",
+  danger: "#F41F3D",     // OM red — borders and indicators
+  dangerText: "#E51D39",  // OM red darkened to clear WCAG AA (4.60:1) as body text
+  surfaceSoft: "#F7F7F7", // OM grey F7 — input and rail backgrounds
   shadow: "#000000",
 
-  /* type */
-  fontDisplay: "'Space Grotesk', system-ui, sans-serif",
-  fontBody: "'JetBrains Mono', monospace",
+  /* The default color of icons the user EXPORTS. Deliberately its own token,
+     not C.ink: UI chrome and tool output are different concerns, and retuning
+     the interface must not silently change what the tool produces. */
+  iconDefault: "#0D2132",
+
+  /* type — Archivo stands in for Altivo until licensed files are available */
+  fontDisplay: "'Archivo', system-ui, sans-serif",
+  fontBody: "'Open Sans', system-ui, sans-serif",
+  fontMono: "'JetBrains Mono', ui-monospace, monospace",
 
   /* radii */
   radiusSm: 6,
@@ -375,8 +386,8 @@ export default function App() {
   const nextId = useRef(1);
 
   const [colorMode, setColorMode] = useState("original"); // original | solid | current
-  const [fillColor, setFillColor] = useState(C.ink);
-  const [strokeColor, setStrokeColor] = useState(C.ink);
+  const [fillColor, setFillColor] = useState(C.iconDefault);
+  const [strokeColor, setStrokeColor] = useState(C.iconDefault);
   const [linkColors, setLinkColors] = useState(true); // keep fill & stroke in sync
   const [weight, setWeight] = useState(0);
   const weightTouched = useRef(false); // becomes true once the user sets weight manually
@@ -407,7 +418,7 @@ export default function App() {
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href =
-      "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap";
+      "https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
     document.head.appendChild(l);
     return () => l.remove();
   }, []);
@@ -590,7 +601,7 @@ export default function App() {
     display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
     padding: "12px 4px", border: "none", borderRadius: 10, cursor: "pointer",
     background: active ? C.accentSoft : "transparent",
-    color: active ? C.accent : C.muted, transition: "all .15s",
+    color: active ? C.ink : C.muted, transition: "all .15s",
   });
 
   const numBox = {
@@ -612,7 +623,7 @@ export default function App() {
   };
 
   const label = {
-    fontFamily: C.fontBody,
+    fontFamily: C.fontDisplay,
     fontSize: 11,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
@@ -661,11 +672,11 @@ export default function App() {
       {dragOver && (
         <div style={{
           position: "fixed", inset: 0, zIndex: 60,
-          background: "rgba(90,79,243,0.08)", border: `2px dashed ${C.accent}`,
+          background: "rgba(70,195,252,0.10)", border: `2px dashed ${C.accent}`,
           display: "flex", alignItems: "center", justifyContent: "center",
           pointerEvents: "none", backdropFilter: "blur(1px)",
         }}>
-          <span style={{ ...label, color: C.accent, fontSize: 14 }}>Drop SVG files to add</span>
+          <span style={{ ...label, color: C.ink, fontSize: 14 }}>Drop SVG files to add</span>
         </div>
       )}
 
@@ -676,7 +687,7 @@ export default function App() {
         position: "sticky", top: 0, zIndex: 30, flexWrap: "wrap",
       }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-          <span style={{ ...label, color: C.accent }}>ICONRY</span>
+          <span style={{ ...label, color: C.ink }}>ICONRY</span>
           <span style={{ fontSize: 14, color: C.muted }}>Recolor, resize, and restyle SVG icons</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -716,10 +727,10 @@ export default function App() {
               style={{
                 width: "100%", resize: "vertical", borderRadius: 9,
                 border: `1px solid ${pasteErr ? C.danger : C.line}`, padding: "9px 11px",
-                fontFamily: C.fontBody, fontSize: 12, color: C.ink, background: C.dangerSoft,
+                fontFamily: C.fontMono, fontSize: 12, color: C.ink, background: C.surfaceSoft,
               }}
             />
-            {pasteErr && <div style={{ color: C.danger, fontSize: 12 }}>{pasteErr}</div>}
+            {pasteErr && <div style={{ color: C.dangerText, fontSize: 12 }}>{pasteErr}</div>}
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={onPaste} style={btn(C.ink, C.paper, true)}>Add</button>
               <button onClick={() => fileRef.current?.click()} style={btn("transparent", C.ink)}>Upload</button>
@@ -779,7 +790,7 @@ export default function App() {
                       {info?.ok && (
                         <span style={{
                           ...label,
-                          color: info.type === "line" ? C.accent : C.ink,
+                          color: info.type === "line" ? C.ink : C.muted,
                           background: info.type === "line" ? C.accentSoft : C.lineSoft,
                           padding: "4px 8px", borderRadius: 6,
                         }}>
@@ -932,7 +943,7 @@ export default function App() {
             {/* tabbed editor: Colors / Display / Stroke */}
             <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden", display: "flex" }}>
               {/* rail */}
-              <div style={{ width: 76, borderRight: `1px solid ${C.lineSoft}`, background: C.dangerSoft, display: "flex", flexDirection: "column", padding: "8px 6px", gap: 4 }}>
+              <div style={{ width: 76, borderRight: `1px solid ${C.lineSoft}`, background: C.surfaceSoft, display: "flex", flexDirection: "column", padding: "8px 6px", gap: 4 }}>
                 {[["colors", "Colors"], ["display", "Display"], ["stroke", "Stroke"]].map(([id, lbl]) => (
                   <button key={id} onClick={() => setTab(id)} style={railBtn(tab === id)}>
                     <RailIcon name={id} />
@@ -970,7 +981,7 @@ export default function App() {
                     )}
                     {colorMode === "current" && (
                       <p style={{ fontSize: 11.5, color: C.muted, margin: "12px 0 0", lineHeight: 1.5 }}>
-                        Sets fill/stroke to <code style={{ fontFamily: C.fontBody }}>currentColor</code> so CSS <code style={{ fontFamily: C.fontBody }}>color</code> drives it — ideal for Elementor theming.
+                        Sets fill/stroke to <code style={{ fontFamily: C.fontMono }}>currentColor</code> so CSS <code style={{ fontFamily: C.fontMono }}>color</code> drives it — ideal for Elementor theming.
                       </p>
                     )}
                     {colorMode === "original" && (
@@ -1100,14 +1111,14 @@ export default function App() {
               <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
                 {[24, 48, 96, 256, 512].map((v) => (
                   <button key={v} onClick={() => setSize(v)}
-                    style={{ ...miniBtn, background: size === v ? C.accentSoft : C.paper, color: size === v ? C.accent : C.muted, borderColor: size === v ? C.accent : C.line }}>
+                    style={{ ...miniBtn, background: size === v ? C.accentSoft : C.paper, color: size === v ? C.ink : C.muted, borderColor: size === v ? C.accent : C.line }}>
                     {v}
                   </button>
                 ))}
               </div>
               <div style={{ height: 1, background: C.lineSoft, margin: "14px 0" }} />
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={copyCurrent} style={btn(C.accent, C.paper, true)}>Copy code</button>
+                <button onClick={copyCurrent} style={btn(C.ink, C.paper, true)}>Copy code</button>
                 <button onClick={downloadCurrent} style={btn("transparent", C.ink)}>Download</button>
               </div>
               {icons.length > 1 && (
@@ -1221,7 +1232,7 @@ function Group({ items }) {
             flex: 1, padding: "11px 0", border: "none",
             borderLeft: i ? `1px solid ${C.line}` : "none",
             background: it.active ? C.accentSoft : C.paper,
-            color: it.active ? C.accent : C.ink,
+            color: it.active ? C.ink : C.muted,
             fontSize: 18, lineHeight: 1, cursor: "pointer",
             fontFamily: C.fontBody, transition: "all .12s",
           }}>
@@ -1273,7 +1284,7 @@ function ColorField({ name, value, onChange }) {
         style={{
           flex: 1, minWidth: 0, borderRadius: 9,
           border: `1px solid ${valid ? C.line : C.danger}`,
-          padding: "9px 11px", fontFamily: C.fontBody,
+          padding: "9px 11px", fontFamily: C.fontMono,
           fontSize: 13, color: C.ink,
         }}
       />
@@ -1287,7 +1298,7 @@ function Row({ children }) {
   return <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>{children}</div>;
 }
 function mono() {
-  return { fontFamily: C.fontBody, fontSize: 14, fontWeight: 600, color: C.accent };
+  return { fontFamily: C.fontDisplay, fontSize: 14, fontWeight: 700, color: C.ink };
 }
 function btn(bg, fg, filled) {
   return {
