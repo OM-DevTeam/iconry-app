@@ -547,7 +547,10 @@ export default function App() {
 
   function copyCurrent() {
     if (!processed) return;
-    navigator.clipboard.writeText(processed).then(() => flash("Copied SVG code"));
+    copyText(processed).then(
+      () => flash("Copied SVG code"),
+      () => flash("Couldn't copy — use Download instead"),
+    );
   }
   function downloadCurrent() {
     if (!processed || !selected) return;
@@ -1163,6 +1166,31 @@ function slugify(s) {
     .replace(/-{2,}/g, "-")
     .replace(/^-+|-+$/g, "");
   return out || "icon";
+}
+
+/* navigator.clipboard is unavailable on non-secure origins and rejects when
+   permission is denied. Fall back to a detached textarea + execCommand, and
+   let the caller report failure rather than rejecting silently. */
+function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+  }
+  return legacyCopy(text);
+}
+
+function legacyCopy(text) {
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:-9999px;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch { ok = false; }
+    document.body.removeChild(ta);
+    ok ? resolve() : reject(new Error("clipboard unavailable"));
+  });
 }
 
 function NameEditor({ initial, onCommit, compact = false, autoFocus = false }) {
